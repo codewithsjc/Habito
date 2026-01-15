@@ -1,267 +1,220 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle2, TrendingUp, Calendar, Plus, Settings, Moon, Sun } from 'lucide-react';
-import HabitList from './components/HabitList';
-import CalendarView from './components/CalendarView';
-import StatsView from './components/StatsView';
+import React, { useEffect, useState } from 'react';
+import { Plus, Filter, MoreVertical, Home, BarChart3, Settings as SettingsIcon, WifiOff } from 'lucide-react';
+import { useHabitStore } from './store/habitStore';
+import { initDB } from './utils/db';
+import HabitGrid from './components/HabitGrid';
 import AddHabitDialog from './components/AddHabitDialog';
-import SettingsDialog from './components/SettingsDialog';
+import StatsView from './components/StatsView';
+import SettingsView from './components/SettingsView';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
+import { Button } from './components/ui/button';
 
 function App() {
-  const [habits, setHabits] = useState([]);
-  const [currentView, setCurrentView] = useState('today'); // 'today', 'calendar', 'stats'
+  const [currentView, setCurrentView] = useState('home');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  
+  const { initStore, loading } = useHabitStore();
 
-  // Load habits and theme from localStorage on mount
+  // Initialize app
   useEffect(() => {
-    const savedHabits = localStorage.getItem('habits');
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedHabits) {
-      setHabits(JSON.parse(savedHabits));
-    } else {
-      // Initialize with sample habits
-      const sampleHabits = [
-        {
-          id: '1',
-          name: 'Morning Meditation',
-          description: '10 minutes of mindfulness',
-          color: 'teal',
-          createdAt: new Date().toISOString(),
-          completions: {}
-        },
-        {
-          id: '2',
-          name: 'Read for 30 minutes',
-          description: 'Fiction or non-fiction',
-          color: 'purple',
-          createdAt: new Date().toISOString(),
-          completions: {}
-        },
-        {
-          id: '3',
-          name: 'Exercise',
-          description: 'Workout or yoga',
-          color: 'green',
-          createdAt: new Date().toISOString(),
-          completions: {}
+    const init = async () => {
+      try {
+        // Initialize IndexedDB
+        await initDB();
+        
+        // Load habits
+        await initStore();
+        
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(() => console.log('Service Worker registered'))
+            .catch(err => console.error('Service Worker registration failed:', err));
         }
-      ];
-      setHabits(sampleHabits);
-      localStorage.setItem('habits', JSON.stringify(sampleHabits));
-    }
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        toast.error('Failed to initialize app');
+      }
+    };
+
+    init();
+  }, [initStore]);
+
+  // Handle online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Back online');
+    };
     
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.info('You\'re offline. Data is saved locally.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // Save habits to localStorage whenever they change
+  // Handle PWA install prompt
   useEffect(() => {
-    if (habits.length > 0) {
-      localStorage.setItem('habits', JSON.stringify(habits));
-    }
-  }, [habits]);
-
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
-  // Add new habit
-  const addHabit = (habitData) => {
-    const newHabit = {
-      id: Date.now().toString(),
-      ...habitData,
-      createdAt: new Date().toISOString(),
-      completions: {}
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
     };
-    setHabits([...habits, newHabit]);
-    toast.success('Habit created successfully!');
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      toast.success('App installed successfully!');
+    }
+    
+    setDeferredPrompt(null);
+    setShowInstallPrompt(false);
   };
 
-  // Delete habit
-  const deleteHabit = (habitId) => {
-    setHabits(habits.filter(h => h.id !== habitId));
-    toast.success('Habit deleted');
-  };
-
-  // Edit habit
-  const editHabit = (habitId, updatedData) => {
-    setHabits(habits.map(h => h.id === habitId ? { ...h, ...updatedData } : h));
-    toast.success('Habit updated');
-  };
-
-  // Toggle habit completion for a specific date
-  const toggleHabitCompletion = (habitId, date) => {
-    setHabits(habits.map(habit => {
-      if (habit.id === habitId) {
-        const completions = { ...habit.completions };
-        if (completions[date]) {
-          delete completions[date];
-        } else {
-          completions[date] = true;
-        }
-        return { ...habit, completions };
-      }
-      return habit;
-    }));
-  };
-
-  // Get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-muted-foreground">Loading habits...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background transition-smooth">
+    <div className="min-h-screen bg-background flex flex-col">
       <Toaster position="top-center" />
       
-      {/* Header */}
-      <header className="border-b border-border bg-card sticky top-0 z-50 shadow-notion">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">Habits</h1>
-                <p className="text-xs text-muted-foreground">Build better habits, one day at a time</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg hover:bg-muted transition-smooth"
-                aria-label="Toggle dark mode"
-              >
-                {darkMode ? (
-                  <Sun className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <Moon className="h-5 w-5 text-muted-foreground" />
-                )}
-              </button>
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-2 rounded-lg hover:bg-muted transition-smooth"
-                aria-label="Settings"
-              >
-                <Settings className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div className="bg-warning/10 text-warning px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+          <WifiOff className="h-4 w-4" />
+          <span>Offline mode - Changes saved locally</span>
+        </div>
+      )}
+
+      {/* Install prompt */}
+      {showInstallPrompt && (
+        <div className="bg-primary/10 text-primary px-4 py-3 flex items-center justify-between">
+          <span className="text-sm">Install Habits app for offline use?</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setShowInstallPrompt(false)}>
+              Later
+            </Button>
+            <Button size="sm" onClick={handleInstallClick}>
+              Install
+            </Button>
           </div>
+        </div>
+      )}
+
+      {/* App Bar */}
+      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h1 className="text-xl font-bold text-foreground">Habits</h1>
           
-          {/* Navigation */}
-          <nav className="flex gap-2 mt-4 border-b border-border -mb-px">
-            <button
-              onClick={() => setCurrentView('today')}
-              className={`px-4 py-2 text-sm font-medium transition-smooth ${
-                currentView === 'today'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setCurrentView('calendar')}
-              className={`px-4 py-2 text-sm font-medium transition-smooth flex items-center gap-2 ${
-                currentView === 'calendar'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              Calendar
-            </button>
-            <button
-              onClick={() => setCurrentView('stats')}
-              className={`px-4 py-2 text-sm font-medium transition-smooth flex items-center gap-2 ${
-                currentView === 'stats'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <TrendingUp className="h-4 w-4" />
-              Stats
-            </button>
-          </nav>
+          <div className="flex items-center gap-2">
+            {currentView === 'home' && (
+              <>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Filter className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentView === 'today' && (
-          <div className="animate-fade-in">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-1">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {habits.filter(h => h.completions[getTodayDate()]).length} of {habits.length} completed
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddDialogOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover transition-smooth shadow-notion"
-              >
-                <Plus className="h-5 w-5" />
-                <span className="hidden sm:inline">Add Habit</span>
-              </button>
-            </div>
-            
-            <HabitList
-              habits={habits}
-              currentDate={getTodayDate()}
-              onToggle={toggleHabitCompletion}
-              onDelete={deleteHabit}
-              onEdit={editHabit}
-            />
-          </div>
-        )}
-
-        {currentView === 'calendar' && (
-          <div className="animate-fade-in">
-            <CalendarView
-              habits={habits}
-              onToggle={toggleHabitCompletion}
-            />
-          </div>
-        )}
-
-        {currentView === 'stats' && (
-          <div className="animate-fade-in">
-            <StatsView habits={habits} />
-          </div>
-        )}
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto">
+        {currentView === 'home' && <HabitGrid />}
+        {currentView === 'stats' && <StatsView />}
+        {currentView === 'settings' && <SettingsView />}
       </main>
 
-      {/* Dialogs */}
+      {/* Floating Action Button */}
+      {currentView === 'home' && (
+        <button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="fixed right-6 bottom-24 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary-hover transition-all hover:scale-110 flex items-center justify-center"
+          aria-label="Add habit"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Bottom Navigation */}
+      <nav className="sticky bottom-0 z-50 bg-card border-t border-border">
+        <div className="flex items-center justify-around px-4 py-3">
+          <button
+            onClick={() => setCurrentView('home')}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+              currentView === 'home'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs font-medium">Home</span>
+          </button>
+          
+          <button
+            onClick={() => setCurrentView('stats')}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+              currentView === 'stats'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-xs font-medium">Stats</span>
+          </button>
+          
+          <button
+            onClick={() => setCurrentView('settings')}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+              currentView === 'settings'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <SettingsIcon className="h-5 w-5" />
+            <span className="text-xs font-medium">Settings</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Add Habit Dialog */}
       <AddHabitDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onAdd={addHabit}
-      />
-      
-      <SettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        habits={habits}
-        setHabits={setHabits}
       />
     </div>
   );
