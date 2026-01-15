@@ -186,7 +186,8 @@ const StatsView = () => {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );
