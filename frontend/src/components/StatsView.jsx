@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useHabitStore } from '../store/habitStore';
 import { calculateHabitStats } from '../utils/streaks';
-import { Flame, TrendingUp, Target, Award, Activity } from 'lucide-react';
+import { Flame, TrendingUp, Target, Award, Activity, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import { motion } from 'framer-motion';
