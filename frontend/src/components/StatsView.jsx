@@ -114,7 +114,20 @@ const StatsView = () => {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-foreground">Habit Details</h2>
         
-        {stats.map(({ habit, stats: habitStats }, index) => (
+        {stats.map(({ habit, stats: habitStats }, index) => {
+          const colorClasses = {
+            blue: 'bg-blue-500',
+            red: 'bg-red-500',
+            orange: 'bg-orange-500',
+            purple: 'bg-purple-500',
+            green: 'bg-green-500',
+            pink: 'bg-pink-500',
+            teal: 'bg-primary',
+            yellow: 'bg-yellow-500',
+          };
+          const habitColor = colorClasses[habit.color] || colorClasses.blue;
+          
+          return (
           <motion.div
             key={habit.id}
             initial={{ opacity: 0, y: 20 }}
@@ -125,7 +138,7 @@ const StatsView = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full bg-${habit.color}-500`} />
+                    <div className={`w-3 h-3 rounded-full ${habitColor}`} />
                     <CardTitle className="text-base font-semibold">{habit.name}</CardTitle>
                   </div>
                   <div className={`text-sm font-bold ${getStrengthColor(habitStats.strength)}`}>
