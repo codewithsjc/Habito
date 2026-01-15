@@ -120,15 +120,28 @@ const HabitGrid = () => {
       }
     `;
 
+    const colorClasses = {
+      blue: 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+      red: 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400',
+      orange: 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
+      purple: 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+      green: 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400',
+      pink: 'bg-pink-100 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400',
+      teal: 'bg-primary-light text-primary',
+      yellow: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400',
+    };
+
+    const habitColor = colorClasses[habit.color] || colorClasses.blue;
+
     if (habit.type === 'yesno') {
       if (status === 'completed') {
         return (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className={`${cellClasses} bg-${habit.color}-100 dark:bg-${habit.color}-900/20`}
+            className={`${cellClasses} ${habitColor.split(' ')[0]} ${habitColor.split(' ')[1]}`}
           >
-            <Check className={`h-5 w-5 text-${habit.color}-600 dark:text-${habit.color}-400`} strokeWidth={3} />
+            <Check className={`h-5 w-5 ${habitColor.split(' ')[2]} ${habitColor.split(' ')[3]}`} strokeWidth={3} />
           </motion.div>
         );
       } else {
@@ -144,13 +157,13 @@ const HabitGrid = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className={`${cellClasses} bg-${habit.color}-100 dark:bg-${habit.color}-900/20 flex-col`}
+            className={`${cellClasses} ${habitColor} flex-col`}
           >
-            <span className={`text-sm font-bold text-${habit.color}-700 dark:text-${habit.color}-300`}>
+            <span className={`text-sm font-bold`}>
               {status}
             </span>
             {habit.unit && (
-              <span className={`text-xs text-${habit.color}-600 dark:text-${habit.color}-400`}>
+              <span className={`text-xs`}>
                 {habit.unit}
               </span>
             )}
