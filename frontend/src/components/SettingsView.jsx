@@ -1,19 +1,38 @@
-import React, { useState } from 'react';
-import { useHabitStore } from '../store/habitStore';
-import { downloadBackup, readBackupFile, validateBackupData } from '../utils/backup';
-import { Download, Upload, Moon, Sun, Info, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { Switch } from './ui/switch';
-import { Separator } from './ui/separator';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { useHabitStore } from "../store/habitStore";
+import {
+  downloadBackup,
+  readBackupFile,
+  validateBackupData,
+} from "../utils/backup";
+import { Download, Upload, Moon, Sun, Info, AlertCircle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+// import { Separator } from './ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import { toast } from "sonner";
 
 const SettingsView = () => {
   const { exportBackup, importBackup } = useHabitStore();
   const [darkMode, setDarkMode] = useState(
-    document.documentElement.classList.contains('dark')
+    document.documentElement.classList.contains("dark")
   );
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -21,12 +40,12 @@ const SettingsView = () => {
   const handleExport = async () => {
     try {
       const data = await exportBackup();
-      const timestamp = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString().split("T")[0];
       downloadBackup(data, `habits-backup-${timestamp}.json`);
-      toast.success('Backup exported successfully');
+      toast.success("Backup exported successfully");
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export backup');
+      console.error("Export failed:", error);
+      toast.error("Failed to export backup");
     }
   };
 
@@ -38,44 +57,46 @@ const SettingsView = () => {
     try {
       const data = await readBackupFile(file);
       const validation = validateBackupData(data);
-      
+
       if (!validation.valid) {
         toast.error(validation.error);
         return;
       }
 
-      const result = await importBackup(data, 'overwrite');
-      toast.success(`Imported ${result.habits} habits and ${result.completions} completions`);
+      const result = await importBackup(data, "overwrite");
+      toast.success(
+        `Imported ${result.habits} habits and ${result.completions} completions`
+      );
     } catch (error) {
-      console.error('Import failed:', error);
-      toast.error('Failed to import backup');
+      console.error("Import failed:", error);
+      toast.error("Failed to import backup");
     } finally {
       setImporting(false);
-      event.target.value = ''; // Reset file input
+      event.target.value = ""; // Reset file input
     }
   };
 
   const handleClearAll = async () => {
     try {
-      await importBackup({ habits: [], completions: [] }, 'overwrite');
-      toast.success('All data cleared');
+      await importBackup({ habits: [], completions: [] }, "overwrite");
+      toast.success("All data cleared");
       setShowClearDialog(false);
     } catch (error) {
-      console.error('Clear failed:', error);
-      toast.error('Failed to clear data');
+      console.error("Clear failed:", error);
+      toast.error("Failed to clear data");
     }
   };
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
-    
+
     if (newMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
   };
 
@@ -90,13 +111,22 @@ const SettingsView = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              {darkMode ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
               <div>
-                <Label htmlFor="dark-mode" className="text-base font-medium cursor-pointer">
+                <Label
+                  htmlFor="dark-mode"
+                  className="text-base font-medium cursor-pointer"
+                >
                   Dark Mode
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  {darkMode ? 'Currently using dark theme' : 'Currently using light theme'}
+                  {darkMode
+                    ? "Currently using dark theme"
+                    : "Currently using light theme"}
                 </p>
               </div>
             </div>
@@ -125,7 +155,7 @@ const SettingsView = () => {
               <Download className="h-4 w-4 mr-2" />
               Export Backup
             </Button>
-            
+
             <div>
               <input
                 type="file"
@@ -136,13 +166,13 @@ const SettingsView = () => {
                 disabled={importing}
               />
               <Button
-                onClick={() => document.getElementById('import-file')?.click()}
+                onClick={() => document.getElementById("import-file")?.click()}
                 variant="outline"
                 className="w-full justify-start"
                 disabled={importing}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {importing ? 'Importing...' : 'Import Backup'}
+                {importing ? "Importing..." : "Import Backup"}
               </Button>
             </div>
           </div>
@@ -152,7 +182,8 @@ const SettingsView = () => {
             <div className="text-sm">
               <p className="font-medium text-foreground mb-1">Important</p>
               <p className="text-muted-foreground">
-                All data is stored locally on your device. Export regularly to backup your habits and history.
+                All data is stored locally on your device. Export regularly to
+                backup your habits and history.
               </p>
             </div>
           </div>
@@ -184,9 +215,12 @@ const SettingsView = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-foreground mb-1">Clear All Data</p>
+                <p className="text-sm font-medium text-foreground mb-1">
+                  Clear All Data
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  This will permanently delete all your habits and history. This action cannot be undone.
+                  This will permanently delete all your habits and history. This
+                  action cannot be undone.
                 </p>
               </div>
             </div>
@@ -207,13 +241,16 @@ const SettingsView = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all your habits,
-              completions, and history from this device.
+              This action cannot be undone. This will permanently delete all
+              your habits, completions, and history from this device.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete Everything
             </AlertDialogAction>
           </AlertDialogFooter>
